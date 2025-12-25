@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clinic-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: clinic-backend
+  template:
+    metadata:
+      labels:
+        app: clinic-backend
+    spec:
+      containers:
+        - name: clinic-backend
+          image: 5122771/clinic-backend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SERVER_PORT
+              value: "8080"
+            # OVERRIDE DATABASE URL FOR K8S
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://postgres-service:5432/clinic_db"
+            # OVERRIDE CORS TO ALLOW EVERYTHING (For testing in Minikube)
+            - name: APP_CORS_ALLOWED_ORIGINS
+              value: "*"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: clinic-backend-service # <--- Frontend will talk to this
+spec:
+  selector:
+    app: clinic-backend
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080

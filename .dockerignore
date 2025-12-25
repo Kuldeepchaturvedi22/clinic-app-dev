@@ -1,0 +1,6 @@
+# .dockerignore
+# exclude folder at repo root
+clinic_appointment_scheduler_f
+
+# if the folder is inside src instead, use:
+# src/clinic_appointment_scheduler_f
