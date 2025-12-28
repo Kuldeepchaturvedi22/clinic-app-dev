@@ -73,7 +73,7 @@ jobs:
           sed -i "s|IMAGE_PLACEHOLDER|$GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/$GAR_REPO/$FRONTEND_IMAGE:$GITHUB_SHA|g" k8s/frontend.yaml
           
           # Apply updated manifests
-          kubectl apply -f k8s/postgres.yaml
+#          kubectl apply -f k8s/postgres.yaml
           kubectl apply -f k8s/backend.yaml
           kubectl apply -f k8s/frontend.yaml
           
