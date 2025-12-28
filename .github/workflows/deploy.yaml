@@ -10,7 +10,7 @@ env:
   GAR_LOCATION: us-central1
   GAR_REPO: ${{ secrets.GAR_REPO }}
   GKE_CLUSTER: ${{ secrets.GKE_CLUSTER }}
-  # GKE_ZONE secret should now contain 'us-central1'
+  # GKE_ZONE secret should contain the region 'us-central1'
   GKE_ZONE: ${{ secrets.GKE_ZONE }}
   BACKEND_IMAGE: clinic-backend
   FRONTEND_IMAGE: clinic-frontend
@@ -24,6 +24,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # 1. Setup Java for Backend Build
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -31,27 +32,33 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      # 2. Build Backend JAR
       - name: Build Backend with Maven
         run: mvn clean package -DskipTests
 
+      # 3. Authenticate to Google Cloud
+      # Ensure GCP_SA_KEY contains the FULL JSON key content
       - id: 'auth'
         uses: 'google-github-actions/auth@v2'
         with:
           credentials_json: '${{ secrets.GCP_SA_KEY }}'
 
+      # 4. Setup GCloud SDK
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
+      # 5. Configure Docker for Artifact Registry
       - name: Docker configuration
         run: |-
-          # Configures docker to use the regional Artifact Registry
           gcloud auth configure-docker $GAR_LOCATION-docker.pkg.dev
 
+      # 6. Build and Push Backend Docker Image
       - name: Build and Push Backend
         run: |-
           docker build -t "$GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/$GAR_REPO/$BACKEND_IMAGE:$GITHUB_SHA" .
           docker push "$GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/$GAR_REPO/$BACKEND_IMAGE:$GITHUB_SHA"
 
+      # 7. Build and Push Frontend Docker Image
       - name: Build and Push Frontend
         working-directory: ./clinic_appointment_scheduler_f
         run: |-
@@ -63,20 +70,20 @@ jobs:
         uses: google-github-actions/get-gke-credentials@v2
         with:
           cluster_name: ${{ env.GKE_CLUSTER }}
-          # This 'location' field accepts either a zone or a region
           location: ${{ env.GKE_ZONE }}
 
+      # 9. Deploy to GKE
       - name: Deploy
         run: |-
-          # Update images in manifests
+          # Replace placeholder with actual image path in k8s manifests
           sed -i "s|IMAGE_PLACEHOLDER|$GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/$GAR_REPO/$BACKEND_IMAGE:$GITHUB_SHA|g" k8s/backend.yaml
           sed -i "s|IMAGE_PLACEHOLDER|$GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/$GAR_REPO/$FRONTEND_IMAGE:$GITHUB_SHA|g" k8s/frontend.yaml
           
-          # Apply updated manifests
-#          kubectl apply -f k8s/postgres.yaml
+          # Apply updated manifests (Postgres is commented out for H2 migration)
+          # kubectl apply -f k8s/postgres.yaml
           kubectl apply -f k8s/backend.yaml
           kubectl apply -f k8s/frontend.yaml
           
-          # Restart deployments to pull new regional images
+          # Force restart to pick up new images
           kubectl rollout restart deployment/clinic-backend
           kubectl rollout restart deployment/clinic-frontend
