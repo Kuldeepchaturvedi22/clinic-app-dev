@@ -1,3 +1,40 @@
+#apiVersion: apps/v1
+#kind: Deployment
+#metadata:
+#  name: clinic-frontend
+#spec:
+#  replicas: 1
+#  selector:
+#    matchLabels:
+#      app: clinic-frontend
+#  template:
+#    metadata:
+#      labels:
+#        app: clinic-frontend
+#    spec:
+#      containers:
+#        - name: clinic-frontend
+#          # This matches the image you just built
+#          image: 5122771/clinic-frontend:latest
+#          imagePullPolicy: Always
+#          ports:
+#            - containerPort: 80
+#---
+#apiVersion: v1
+#kind: Service
+#metadata:
+#  name: clinic-frontend-service
+#spec:
+#  selector:
+#    app: clinic-frontend
+#  type: NodePort
+#  ports:
+#    - protocol: TCP
+#      port: 80        # The port Nginx listens on inside the container
+#      targetPort: 80
+#      nodePort: 30005 # You will access the app at http://localhost:30005
+
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -14,7 +51,7 @@ spec:
     spec:
       containers:
         - name: clinic-frontend
-          # This matches the image you just built
+          # CI/CD will replace IMAGE_PLACEHOLDER
           image: 5122771/clinic-frontend:latest
           imagePullPolicy: Always
           ports:
@@ -27,9 +64,9 @@ metadata:
 spec:
   selector:
     app: clinic-frontend
-  type: NodePort
+  # LoadBalancer gives you an external IP address on GCP
+  type: LoadBalancer
   ports:
     - protocol: TCP
-      port: 80        # The port Nginx listens on inside the container
+      port: 80
       targetPort: 80
-      nodePort: 30005 # You will access the app at http://localhost:30005

@@ -1,3 +1,54 @@
+#apiVersion: apps/v1
+#kind: Deployment
+#metadata:
+#  name: postgres-db
+#spec:
+#  replicas: 1
+#  selector:
+#    matchLabels:
+#      app: postgres
+#  template:
+#    metadata:
+#      labels:
+#        app: postgres
+#    spec:
+#      containers:
+#        - name: postgres
+#          image: postgres:15
+#          env:
+#            - name: POSTGRES_USER
+#              value: "postgres"
+#            - name: POSTGRES_PASSWORD
+#              value: "New123"
+#            - name: POSTGRES_DB
+#              value: "clinic_db"
+#          ports:
+#            - containerPort: 5432
+#---
+#apiVersion: v1
+#kind: Service
+#metadata:
+#  name: postgres-service  # <--- Backend will use this name to connect
+#spec:
+#  selector:
+#    app: postgres
+#  ports:
+#    - protocol: TCP
+#      port: 5432
+#      targetPort: 5432
+
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -15,24 +66,35 @@ spec:
       containers:
         - name: postgres
           image: postgres:15
+          ports:
+            - containerPort: 5432
           env:
             - name: POSTGRES_USER
               value: "postgres"
+            # In production, use a K8s Secret for this!
             - name: POSTGRES_PASSWORD
-              value: "New123"
+              valueFrom:
+                secretKeyRef:
+                  name: clinic-secrets
+                  key: db_password
             - name: POSTGRES_DB
               value: "clinic_db"
-          ports:
-            - containerPort: 5432
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: postgres-data
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: postgres-pvc
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: postgres-service  # <--- Backend will use this name to connect
+  name: postgres-service
 spec:
   selector:
     app: postgres
   ports:
     - protocol: TCP
       port: 5432
-      targetPort: 5432  
+      targetPort: 5432
