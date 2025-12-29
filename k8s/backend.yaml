@@ -233,10 +233,18 @@ spec:
         # --- Spring Boot Application ---
         - name: clinic-backend
           image: 5122771/clinic-backend:latest
-          imagePullPolicy: Always
           ports:
-            - containerPort: 8080
+            - containerPort: 8000  # Must match server.port=8000
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
           env:
+            - name: SERVER_PORT
+              value: "8000"  # Explicitly setting the port
             - name: SPRING_DATASOURCE_URL
               value: "jdbc:postgresql://127.0.0.1:5432/clinic_db"
             - name: SPRING_DATASOURCE_USERNAME
@@ -257,19 +265,34 @@ spec:
         # --- Cloud SQL Auth Proxy Sidecar ---
         - name: cloud-sql-proxy
           image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.14.1
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
           args:
             - "--credentials-file=/secrets/service_account.json"
             - "--port=5432"
-            # Updated with your specific connection name from screenshot
             - "hello-481616:us-central1:my-postgres-db"
-          securityContext:
-            runAsNonRoot: true
           volumeMounts:
             - name: sa-key-volume
               mountPath: /secrets/
               readOnly: true
-
       volumes:
         - name: sa-key-volume
           secret:
             secretName: sql-proxy-key
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: clinic-backend-service
+spec:
+  selector:
+    app: clinic-backend
+  ports:
+    - protocol: TCP
+      port: 8000       # Port used by Frontend Nginx to communicate
+      targetPort: 8000 # The actual port your app listens on
