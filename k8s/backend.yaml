@@ -290,6 +290,7 @@ kind: Service
 metadata:
   name: clinic-backend-service
 spec:
+  type: LoadBalancer
   selector:
     app: clinic-backend
   ports:
