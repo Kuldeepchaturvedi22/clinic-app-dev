@@ -230,7 +230,7 @@ spec:
         app: clinic-backend
     spec:
       containers:
-        # --- CONTAINER 1: Spring Boot Application ---
+        # --- Spring Boot Application ---
         - name: clinic-backend
           image: 5122771/clinic-backend:latest
           imagePullPolicy: Always
@@ -240,7 +240,7 @@ spec:
             - name: SPRING_DATASOURCE_URL
               value: "jdbc:postgresql://127.0.0.1:5432/clinic_db"
             - name: SPRING_DATASOURCE_USERNAME
-              value: "dbuser" # Changed to match your properties file
+              value: "dbuser"
             - name: SPRING_DATASOURCE_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -254,14 +254,14 @@ spec:
             - name: APP_CORS_ALLOWED_ORIGINS
               value: "*"
 
-        # --- CONTAINER 2: Cloud SQL Auth Proxy Sidecar ---
+        # --- Cloud SQL Auth Proxy Sidecar ---
         - name: cloud-sql-proxy
           image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.14.1
           args:
             - "--credentials-file=/secrets/service_account.json"
             - "--port=5432"
-            # IMPORTANT: Replace this with your PROJECT:REGION:INSTANCE
-            - "your-project-id:us-central1:your-instance-id"
+            # Updated with your specific connection name from screenshot
+            - "hello-481616:us-central1:my-postgres-db"
           securityContext:
             runAsNonRoot: true
           volumeMounts:
