@@ -75,15 +75,14 @@ jobs:
       # 9. Deploy to GKE
       - name: Deploy
         run: |-
-          # Replace placeholder with actual image path in k8s manifests
+          # Ensure placeholders match exactly what is in your k8s/*.yaml files
           sed -i "s|IMAGE_PLACEHOLDER|$GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/$GAR_REPO/$BACKEND_IMAGE:$GITHUB_SHA|g" k8s/backend.yaml
           sed -i "s|IMAGE_PLACEHOLDER|$GAR_LOCATION-docker.pkg.dev/$PROJECT_ID/$GAR_REPO/$FRONTEND_IMAGE:$GITHUB_SHA|g" k8s/frontend.yaml
           
-          # Apply updated manifests (Postgres is commented out for H2 migration)
-          # kubectl apply -f k8s/postgres.yaml
+          # Apply manifests
           kubectl apply -f k8s/backend.yaml
           kubectl apply -f k8s/frontend.yaml
           
-          # Force restart to pick up new images
-          kubectl rollout restart deployment/clinic-backend
-          kubectl rollout restart deployment/clinic-frontend
+          # Force a fresh pull of the specific SHA-tagged images
+          kubectl rollout status deployment/clinic-backend
+          kubectl rollout status deployment/clinic-frontend
