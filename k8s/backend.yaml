@@ -295,5 +295,5 @@ spec:
     app: clinic-backend
   ports:
     - protocol: TCP
-      port: 8000       # Port used by Frontend Nginx to communicate
-      targetPort: 8000 # The actual port your app listens on
+      port: 8080       # Port used by Frontend Nginx to communicate
+      targetPort: 8080 # The actual port your app listens on
