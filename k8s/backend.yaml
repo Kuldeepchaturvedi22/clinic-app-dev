@@ -141,6 +141,80 @@
 #          persistentVolumeClaim:
 #            claimName: postgres-pvc # You can reuse your existing PVC here
 
+#apiVersion: apps/v1
+#kind: Deployment
+#metadata:
+#  name: clinic-backend
+#spec:
+#  replicas: 1
+#  selector:
+#    matchLabels:
+#      app: clinic-backend
+#  template:
+#    metadata:
+#      labels:
+#        app: clinic-backend
+#    spec:
+#      containers:
+#        # --- CONTAINER 1: Your Spring Boot Application ---
+#        - name: clinic-backend
+#          image: 5122771/clinic-backend:latest  # GitHub Actions will replace this
+#          imagePullPolicy: Always
+#          ports:
+#            - containerPort: 8080
+#          env:
+#            # Connect to localhost because the proxy is in the same pod
+#            - name: SPRING_DATASOURCE_URL
+#              value: "jdbc:postgresql://127.0.0.1:5432/clinic_db"
+#            - name: SPRING_DATASOURCE_USERNAME
+#              value: "postgres"
+#            - name: SPRING_DATASOURCE_PASSWORD
+#              valueFrom:
+#                secretKeyRef:
+#                  name: clinic-secrets
+#                  key: db_password
+#            - name: GEMINI_API_KEY
+#              valueFrom:
+#                secretKeyRef:
+#                  name: clinic-secrets
+#                  key: gemini_api_key
+#            - name: APP_CORS_ALLOWED_ORIGINS
+#              value: "*"
+#
+#        # --- CONTAINER 2: Cloud SQL Auth Proxy Sidecar ---
+#        - name: cloud-sql-proxy
+#          image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.14.1
+#          args:
+#            - "--credentials-file=/secrets/service_account.json"
+#            - "--port=5432"
+#            # Replace with your PROJECT:REGION:INSTANCE
+#            - "YOUR_INSTANCE_CONNECTION_NAME"
+#          securityContext:
+#            runAsNonRoot: true
+#          volumeMounts:
+#            - name: sa-key-volume
+#              mountPath: /secrets/
+#              readOnly: true
+#
+#      volumes:
+#        - name: sa-key-volume
+#          secret:
+#            # This secret must contain your Cloud SQL Client SA key
+#            secretName: sql-proxy-key
+#---
+#apiVersion: v1
+#kind: Service
+#metadata:
+#  name: clinic-backend-service
+#spec:
+#  selector:
+#    app: clinic-backend
+#  ports:
+#    - protocol: TCP
+#      port: 8080
+#      targetPort: 8080
+
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -156,18 +230,17 @@ spec:
         app: clinic-backend
     spec:
       containers:
-        # --- CONTAINER 1: Your Spring Boot Application ---
+        # --- CONTAINER 1: Spring Boot Application ---
         - name: clinic-backend
-          image: 5122771/clinic-backend:latest  # GitHub Actions will replace this
+          image: 5122771/clinic-backend:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
           env:
-            # Connect to localhost because the proxy is in the same pod
             - name: SPRING_DATASOURCE_URL
               value: "jdbc:postgresql://127.0.0.1:5432/clinic_db"
             - name: SPRING_DATASOURCE_USERNAME
-              value: "postgres"
+              value: "dbuser" # Changed to match your properties file
             - name: SPRING_DATASOURCE_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -187,8 +260,8 @@ spec:
           args:
             - "--credentials-file=/secrets/service_account.json"
             - "--port=5432"
-            # Replace with your PROJECT:REGION:INSTANCE
-            - "YOUR_INSTANCE_CONNECTION_NAME"
+            # IMPORTANT: Replace this with your PROJECT:REGION:INSTANCE
+            - "your-project-id:us-central1:your-instance-id"
           securityContext:
             runAsNonRoot: true
           volumeMounts:
@@ -199,17 +272,4 @@ spec:
       volumes:
         - name: sa-key-volume
           secret:
-            # This secret must contain your Cloud SQL Client SA key
             secretName: sql-proxy-key
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: clinic-backend-service
-spec:
-  selector:
-    app: clinic-backend
-  ports:
-    - protocol: TCP
-      port: 8080
-      targetPort: 8080
